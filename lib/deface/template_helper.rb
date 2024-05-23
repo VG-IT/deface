@@ -1,13 +1,17 @@
 module Deface
   module TemplateHelper
-    def self.lookup_context
-      @lookup_context ||= ActionView::LookupContext.new(
-        ActionController::Base.view_paths, {:formats => [:html]}
+    def lookup_context(view_format)
+      @lookup_context ||= {}
+
+      return @lookup_context[view_format] if @lookup_context.has_key?(view_format)
+
+      @lookup_context[view_format] ||= ::ActionView::LookupContext.new(
+        ::ActionController::Base.view_paths, {:formats => [view_format]}
       )
     end
 
     # used to find source for a partial or template using virtual_path
-    def load_template_source(virtual_path, partial, apply_overrides=true, lookup_context: Deface::TemplateHelper.lookup_context)
+    def load_template_source(virtual_path, partial, apply_overrides=true, lookup_context: nil)
       parts = virtual_path.split("/")
 
       if parts.size == 2
@@ -18,7 +22,16 @@ module Deface
         name = parts.join("/")
       end
 
-      view = lookup_context.disable_cache { lookup_context.find(name, prefix, partial) }
+      # if lookup_context.blank?
+        view_format = name.include?('.') ? name.split('.').pop.to_sym : :html
+
+        lookup_context ||= self.lookup_context(view_format)
+      # end
+      name = name.split('.').shift
+
+      view = lookup_context.disable_cache do
+        lookup_context.find(name, prefix, partial)
+      end
 
       source =
         if view.handler.to_s == "Haml::Plugin"
