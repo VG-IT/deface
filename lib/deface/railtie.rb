@@ -86,10 +86,10 @@ module Deface
     private
 
     def tweak_eager_loading(railtie)
-      paths_to_reject = railtie.config.eager_load_paths.select { |path| path.to_s  =~ /app\/overrides\z/ }
+      paths_to_reject = (railtie.config.eager_load_paths + railtie.paths.eager_load).select { |path| path.to_s =~ /app\/overrides\z/ }
       railtie.config.eager_load_paths = railtie.config.eager_load_paths.reject { |path| path.in?(paths_to_reject) }
 
-      if Rails.configuration.respond_to?(:autoloader) && Rails.configuration.autoloader == :zeitwerk
+      if Rails.autoloaders.zeitwerk_enabled?
         Rails.autoloaders.each { |autoloader| autoloader.ignore(*paths_to_reject) }
       end
     end
